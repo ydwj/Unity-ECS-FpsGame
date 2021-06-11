@@ -10,7 +10,6 @@ public class BulletSystem : SystemBase
     {
         base.OnCreate();
         endSimulationEcbSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
-
     }
     protected override void OnUpdate()
     {
@@ -21,9 +20,7 @@ public class BulletSystem : SystemBase
         {
             translation.Value += bullet.flySpeed * deltaTime * math.forward(rot.Value);
             deleteTag.lifeTime-= deltaTime;
-         
 
         }).Run();
-
     }
 }

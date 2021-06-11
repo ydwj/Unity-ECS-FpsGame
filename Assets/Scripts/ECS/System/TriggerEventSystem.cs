@@ -126,7 +126,7 @@ public class TriggerEventSystem : SystemBase
                 #region É¾³ý×Óµ¯
 
                 float3 boomPos = float3.zero;
-                if (TranslationGroup.HasComponent(triggerEvent.EntityA))
+                if (TranslationGroup.HasComponent(triggerEvent.EntityB))
                 {
                     Translation temp = TranslationGroup[triggerEvent.EntityB];
                     boomPos = temp.Value;

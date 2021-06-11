@@ -13,20 +13,21 @@ public class TriggerEventSystem : SystemBase
 {
     private BuildPhysicsWorld buildPhysicsWorld;
     private StepPhysicsWorld stepPhysicsWorld;
-    BeginInitializationEntityCommandBufferSystem endSimulationEcbSystem;
+    EndSimulationEntityCommandBufferSystem endSimulationEcbSystem;
 
     protected override void OnCreate()
     {
         buildPhysicsWorld = World.GetOrCreateSystem<BuildPhysicsWorld>();
         stepPhysicsWorld = World.GetOrCreateSystem<StepPhysicsWorld>();
-        endSimulationEcbSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
+        endSimulationEcbSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
     }
 
     protected override void OnUpdate()
     {
-        EntityCommandBuffer ecb = endSimulationEcbSystem.CreateCommandBuffer();
-        NativeArray<bool> isbehit = new NativeArray<bool>(1, Allocator.TempJob);
-
+        var ecb = endSimulationEcbSystem.CreateCommandBuffer();
+        //传入两个bool值，用来判断是否播放被击中或者被击杀的音效
+        NativeArray<bool> isbehit = new NativeArray<bool>(2, Allocator.TempJob);
+       
         TriggerJob triggerJob = new TriggerJob
         {
             #region 填入各类组件的Group
@@ -44,9 +45,8 @@ public class TriggerEventSystem : SystemBase
             boom = FPSGameManager.instance.boomEntity,
             isbehit = isbehit,
             #endregion
-
         };
-        Dependency = triggerJob.Schedule(stepPhysicsWorld.Simulation, ref buildPhysicsWorld.PhysicsWorld, Dependency);
+        Dependency = triggerJob.Schedule(stepPhysicsWorld.Simulation, ref buildPhysicsWorld.PhysicsWorld,this.Dependency );
         Dependency.Complete();
 
         if (isbehit[0])
@@ -54,11 +54,17 @@ public class TriggerEventSystem : SystemBase
             isbehit[0] = false;
             FPSGameManager.instance.PlayBehit();
         }
+        
+        if (isbehit[1])
+        {
+            isbehit[1] = false;
+            FPSGameManager.instance.PlayBoom();
+        }
         isbehit.Dispose();
     }
 
     [BurstCompile]
-    private struct TriggerJob : ITriggerEventsJob
+    private struct TriggerJob :ITriggerEventsJob
     {
         #region 各类group
 
@@ -88,6 +94,7 @@ public class TriggerEventSystem : SystemBase
 
             if (EnemyGroup.HasComponent(triggerEvent.EntityA))
             {
+                //敌人与主角碰撞效果
                 if (!BulletGroup.HasComponent(triggerEvent.EntityB) && BeatBackGroup.HasComponent(triggerEvent.EntityB))
                 {
 
@@ -117,56 +124,71 @@ public class TriggerEventSystem : SystemBase
                 isbehit[0] = true;
 
                 #region 删除子弹
-                Translation temp = TranslationGroup[triggerEvent.EntityB];
-                float3 boomPos = temp.Value;
-                temp.Value = new float3(0, 100, 0);
-                TranslationGroup[triggerEvent.EntityB] = temp;
-                DeleteTag deleteTag = new DeleteTag
+
+                float3 boomPos = float3.zero;
+                if (TranslationGroup.HasComponent(triggerEvent.EntityA))
                 {
-                    delayTime = 1f
-                };
-                ecb.AddComponent(triggerEvent.EntityB, deleteTag);
-                #endregion
-
-                #region 击退
-                BeatBack beatBack = BeatBackGroup[triggerEvent.EntityA];
-
-                if (beatBack.curVelocity > 0.1f)
-                {
-                    beatBack.velocity += (5f - beatBack.curVelocity) * 0.1f;
-
-                }
-                else
-                {
-                    beatBack.velocity = 5f;
-                }
-                if (RotationGroup.HasComponent(triggerEvent.EntityB))
-                {
-                    Rotation rotation = RotationGroup[triggerEvent.EntityB];
-                    beatBack.rotation = rotation;
-                }
-
-                BeatBackGroup[triggerEvent.EntityA] = beatBack;
-                #endregion
-
-                #region 扣血
-
-                Hp hp = HpGroup[triggerEvent.EntityA];
-                hp.HpValue--;
-                HpGroup[triggerEvent.EntityA] = hp;
-
-                #endregion
-
-                if (hp.HpValue == 0)
-                {
-                    Entity boomEntity = ecb.Instantiate(boom);
-                    Translation translation = new Translation
+                    Translation temp = TranslationGroup[triggerEvent.EntityB];
+                    boomPos = temp.Value;
+                    temp.Value = new float3(0, 100, 0);
+                    TranslationGroup[triggerEvent.EntityB] = temp;
+                    if (DeleteGroup.HasComponent(triggerEvent.EntityB))
                     {
-                        Value = boomPos
-                    };
-                    ecb.SetComponent(boomEntity, translation);
+                       DeleteTag temp1 = DeleteGroup[triggerEvent.EntityB];
+                       temp1.lifeTime = 0f;
+                        DeleteGroup[triggerEvent.EntityB] = temp1;
+                    }
+                   
                 }
 
+                #endregion
+
+                #region 子弹击退敌人效果
+                if (BeatBackGroup.HasComponent(triggerEvent.EntityA))
+                {
+                    BeatBack beatBack = BeatBackGroup[triggerEvent.EntityA];
+
+                    if (beatBack.curVelocity > 0.1f)
+                    {
+                        beatBack.velocity += (5f - beatBack.curVelocity) * 0.1f;
+
+                    }
+                    else
+                    {
+                        beatBack.velocity = 5f;
+                    }
+                    if (RotationGroup.HasComponent(triggerEvent.EntityB))
+                    {
+                        Rotation rotation = RotationGroup[triggerEvent.EntityB];
+                        beatBack.rotation = rotation;
+                    }
+
+                    BeatBackGroup[triggerEvent.EntityA] = beatBack;
+                }
+
+                #endregion
+
+                #region 扣血并生成爆炸粒子实体
+                if (HpGroup.HasComponent(triggerEvent.EntityA))
+                {
+                    Hp hp = HpGroup[triggerEvent.EntityA];
+                    hp.HpValue--;
+                    HpGroup[triggerEvent.EntityA] = hp;
+                    if (hp.HpValue == 0)
+                    {
+                        //播放死亡音效
+                        isbehit[1] = true;
+                        Entity boomEntity = ecb.Instantiate(boom);
+                        Translation translation = new Translation
+                        {
+                            Value = boomPos
+                        };
+                        ecb.SetComponent(boomEntity, translation);
+                    }
+                }
+            
+
+                #endregion
             }
 
             if (EnemyGroup.HasComponent(triggerEvent.EntityB))
@@ -201,58 +223,71 @@ public class TriggerEventSystem : SystemBase
                 isbehit[0] = true;
 
                 #region 删除子弹
-                Translation temp = TranslationGroup[triggerEvent.EntityA];
-                float3 boomPos = temp.Value;
-                temp.Value = new float3(0, 100, 0);
-                TranslationGroup[triggerEvent.EntityA] = temp;
-                DeleteTag deleteTag = new DeleteTag
+                float3 boomPos = float3.zero;
+                if (TranslationGroup.HasComponent(triggerEvent.EntityA))
                 {
-                    delayTime = 1f
-                };
-                ecb.AddComponent(triggerEvent.EntityA, deleteTag);
+                    Translation temp = TranslationGroup[triggerEvent.EntityA];
+                    boomPos = temp.Value;
+                    temp.Value = new float3(0, 100, 0);
+                    TranslationGroup[triggerEvent.EntityA] = temp;
+                    if (DeleteGroup.HasComponent(triggerEvent.EntityA))
+                    {
+                        DeleteTag temp1 = DeleteGroup[triggerEvent.EntityA];
+                        temp1.lifeTime = 0f;
+                        DeleteGroup[triggerEvent.EntityA] = temp1;
+                    }
+                }
+
+
                 #endregion
 
                 #region 击退
-                BeatBack beatBack = BeatBackGroup[triggerEvent.EntityB];
-                if (beatBack.curVelocity > 0.1f)
+                if (BeatBackGroup.HasComponent(triggerEvent.EntityB))
                 {
-                    beatBack.velocity = (6f - beatBack.curVelocity) * 0.1f;
+                    BeatBack beatBack = BeatBackGroup[triggerEvent.EntityB];
+                    if (beatBack.curVelocity > 0.1f)
+                    {
+                        beatBack.velocity = (6f - beatBack.curVelocity) * 0.1f;
 
-                }
-                else
-                {
-                    beatBack.velocity = 6f;
-                }
-                if (RotationGroup.HasComponent(triggerEvent.EntityA))
-                {
-                    Rotation rotation = RotationGroup[triggerEvent.EntityA];
-                    beatBack.rotation = rotation;
+                    }
+                    else
+                    {
+                        beatBack.velocity = 6f;
+                    }
+                    if (RotationGroup.HasComponent(triggerEvent.EntityA))
+                    {
+                        Rotation rotation = RotationGroup[triggerEvent.EntityA];
+                        beatBack.rotation = rotation;
+                    }
+                    BeatBackGroup[triggerEvent.EntityB] = beatBack;
                 }
 
 
-                BeatBackGroup[triggerEvent.EntityB] = beatBack;
                 #endregion
 
-                #region 扣血
-
-                Hp hp = HpGroup[triggerEvent.EntityB];
-                hp.HpValue--;
-                HpGroup[triggerEvent.EntityB] = hp;
-
-                if (hp.HpValue == 0)
+                #region 扣血并生成爆炸粒子实体
+                if (HpGroup.HasComponent(triggerEvent.EntityB))
                 {
-                    Entity boomEntity = ecb.Instantiate(boom);
-                    Translation translation = new Translation
+                    Hp hp = HpGroup[triggerEvent.EntityB];
+                    hp.HpValue--;
+                    HpGroup[triggerEvent.EntityB] = hp;
+
+                    if (hp.HpValue == 0)
                     {
-                        Value = boomPos
-                    };
-                    ecb.SetComponent(boomEntity, translation);
+                        //播放死亡音效
+                        isbehit[1] = true;
+                        Entity boomEntity = ecb.Instantiate(boom);
+                        Translation translation = new Translation
+                        {
+                            Value = boomPos
+                        };
+                        ecb.SetComponent(boomEntity, translation);
+                    }
                 }
 
                 #endregion
 
             }
-
         }
     }
 

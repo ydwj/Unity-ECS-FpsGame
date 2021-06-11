@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 2479548339244783312}
   - component: {fileID: 1511432070527504962}
   - component: {fileID: 8904478551983185371}
+  - component: {fileID: 4308276858002210972}
   m_Layer: 0
   m_Name: Bullet2
   m_TagString: Bullet
@@ -253,7 +254,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7679033c602efc4d8facaf0fde14688, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  lifetime: 3
   flySpeed: 20
 --- !u!114 &8904478551983185371
 MonoBehaviour:
@@ -305,3 +305,16 @@ MonoBehaviour:
     Tag05: 0
     Tag06: 0
     Tag07: 0
+--- !u!114 &4308276858002210972
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1512641137412893462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 415ab2cbe82ca32488c84d0b2ab901dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lifeTime: 1

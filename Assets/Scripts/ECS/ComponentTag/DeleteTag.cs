@@ -1,5 +1,7 @@
 using Unity.Entities;
+
+[GenerateAuthoringComponent]
 public struct DeleteTag :IComponentData
 {
-    public float delayTime;
+    public float lifeTime;
 }

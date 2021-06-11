@@ -56,14 +56,18 @@ public class WeaponSystem : SystemBase
 
                         Bullet bullet = new Bullet
                         {
-                            lifetime = 2,
+
                             flySpeed = 20,
+                        };
+                        DeleteTag deleteTag = new DeleteTag
+                        {
+                            lifeTime = 1f
                         };
 
                         ecb.SetComponent(tempBullet, translation);
                         ecb.SetComponent(tempBullet, rot);
                         ecb.SetComponent(tempBullet, bullet);
-
+                        ecb.SetComponent(tempBullet, deleteTag);
                         FPSGameManager.instance.PlayShoot();
 
                     }
@@ -116,14 +120,19 @@ public class WeaponSystem : SystemBase
 
                         Bullet bullet = new Bullet
                         {
-                            lifetime = 2,
+
                             flySpeed = 20,
 
+                        };
+                        DeleteTag deleteTag = new DeleteTag
+                        {
+                            lifeTime = 1f
                         };
 
                         ecb.SetComponent(tempBullet, translation);
                         ecb.SetComponent(tempBullet, rot);
                         ecb.SetComponent(tempBullet, bullet);
+                        ecb.SetComponent(tempBullet, deleteTag);
 
                         FPSGameManager.instance.PlayShoot();
                         #endregion
@@ -137,8 +146,11 @@ public class WeaponSystem : SystemBase
 
                         Bullet bullet1 = new Bullet
                         {
-                            lifetime = 0.5f,
                             flySpeed = 25,
+                        };
+                        DeleteTag deleteTag2= new DeleteTag
+                        {
+                           lifeTime= 0.5f
                         };
 
                         for (int i = -5; i < 5; i++)
@@ -159,6 +171,7 @@ public class WeaponSystem : SystemBase
                             ecb.SetComponent(tempBullet2, translation2);
                             ecb.SetComponent(tempBullet2, rotation2);
                             ecb.SetComponent(tempBullet2, bullet1);
+                            ecb.SetComponent(tempBullet2, deleteTag2);
                         }
 
                         FPSGameManager.instance.PlayShoot();

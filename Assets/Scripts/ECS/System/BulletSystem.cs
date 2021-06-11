@@ -2,36 +2,28 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Transforms;
 using Unity.Mathematics;
-using Unity.Collections;
 
 public class BulletSystem : SystemBase
 {
+    EndSimulationEntityCommandBufferSystem endSimulationEcbSystem;
+    protected override void OnCreate()
+    {
+        base.OnCreate();
+        endSimulationEcbSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+
+    }
     protected override void OnUpdate()
     {
-
         float deltaTime = Time.DeltaTime;
-        //这里只是为了展示自定义EntityCommandBuffer的用法，为了性能考虑一般还是用系统提供的ecb
-        EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.TempJob);
-
+        var ecb = endSimulationEcbSystem.CreateCommandBuffer();
         Entities.
-            ForEach((Entity entity, ref Bullet bullet, ref Translation translation,in Rotation rot) =>
+        ForEach(( ref Translation translation, ref DeleteTag deleteTag, in Rotation rot, in Bullet bullet) =>
         {
             translation.Value += bullet.flySpeed * deltaTime * math.forward(rot.Value);
-            bullet.lifetime-=deltaTime;
-            if (bullet.lifetime <=0)
-            {
-                translation.Value = new float3(0, 100, 0);
-                DeleteTag deleteTag = new DeleteTag
-                {
-                    delayTime=1f
-                };
-                ecb.AddComponent(entity, deleteTag);
-             
-            }
-           
+            deleteTag.lifeTime-= deltaTime;
+         
+
         }).Run();
 
-        ecb.Playback(World.DefaultGameObjectInjectionWorld.EntityManager);
-        ecb.Dispose();
     }
 }

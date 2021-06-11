@@ -4,6 +4,7 @@ using Unity.Transforms;
 using Unity.Mathematics;
 using UnityEngine;
 
+
 public class EnemySystem : SystemBase
 {
     EndSimulationEntityCommandBufferSystem endSimulationEcbSystem;
@@ -29,17 +30,17 @@ public class EnemySystem : SystemBase
             WithStoreEntityQueryInField(ref query).
             ForEach((Entity entity, ref Translation translation, ref Rotation rotation, ref Enemy enemy) =>
         {
-            if (HasComponent<LocalToWorld>(enemy.targetEntity))
-                {
-                    //×·×ÙÖ÷½Ç
-                    LocalToWorld targetl2w = GetComponent<LocalToWorld>(enemy.targetEntity);
-                    float3 targetPos = targetl2w.Position;
-                    translation.Value = Vector3.MoveTowards(translation.Value, targetPos, enemy.speed * deltaTime);
 
-                    var targetDir = targetPos - translation.Value;
-                    quaternion temp1 = quaternion.LookRotation(targetDir, math.up());
-                    rotation.Value = temp1;
-                }
+            if (HasComponent<LocalToWorld>(enemy.targetEntity))
+            {
+                //×·×ÙÖ÷½Ç
+                LocalToWorld targetl2w = GetComponent<LocalToWorld>(enemy.targetEntity);
+                float3 targetPos = targetl2w.Position;
+                translation.Value = Vector3.MoveTowards(translation.Value, targetPos, enemy.speed * deltaTime);
+                var targetDir = targetPos - translation.Value;
+                quaternion temp1 = quaternion.LookRotation(targetDir, math.up());
+                rotation.Value = temp1;
+            }
 
         }).Run();
 
@@ -98,7 +99,7 @@ public class EnemySystem : SystemBase
 
                 ecb.SetComponent(temp, translation);
                 ecb.SetComponent(temp, enemy);
-            
+                      
                
             }
         }
